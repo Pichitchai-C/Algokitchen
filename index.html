@@ -45,6 +45,7 @@ canvas{flex:1;width:100%;min-height:0;display:block;border-radius:10px}
 <div class="pn"><canvas id="cv"></canvas><div id="ord"></div><div id="res" hidden></div></div>
 </div>
 <div id="rot">🔄<br>หมุนจอเป็นแนวนอนเพื่อเล่น</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),sl=ms=>new Promise(r=>setTimeout(r,ms));
 const h=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e};
@@ -118,31 +119,53 @@ $('#run').onclick=()=>busy?halt=1:run();
 $('#clr').onclick=()=>go(lv);
 const fs=$('#fs');if(!document.documentElement.requestFullscreen)fs.hidden=1;
 fs.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}}catch(e){}};
-/* ---- วาดครัว ---- */
-const cv=$('#cv'),x=cv.getContext('2d'),O=[[-20,-2],[8,-3],[-6,4],[22,1],[-30,4],[14,6]];
-const mix=(a,b,t)=>{const f=q=>[1,3,5].map(i=>parseInt(q.substr(i,2),16)),A=f(a),B=f(b);return'rgb('+A.map((v,i)=>v+(B[i]-v)*t|0)+')'};
-const ell=(a,b,rx,ry)=>{x.beginPath();x.ellipse(a,b,rx,ry,0,0,7);x.fill()};
-function food(a,ox,oy,burn){a.forEach((i,j)=>{const p=O[j%6],mx=(R[lv].need[i.k]||[0,5])[1],r=burn?1:Math.min(1,i.c/(mx+1.5));
- x.fillStyle=mix(BC[i.k],'#1b0e06',r*r);ell(ox+p[0],oy+p[1],9,9);x.font='11px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(E[i.k],ox+p[0],oy+p[1]+1)})}
-function frame(t){const W=cv.clientWidth,H=cv.clientHeight,d=devicePixelRatio||1;
- if(cv.width!=W*d||cv.height!=H*d){cv.width=W*d;cv.height=H*d}
- x.setTransform(1,0,0,1,0,0);x.fillStyle='#16303a';x.fillRect(0,0,cv.width,cv.height);
- const s=Math.min(W/300,H/200)*d;x.setTransform(s,0,0,s,(cv.width-300*s)/2,(cv.height-200*s)/2);
- x.fillStyle='#2d4852';x.fillRect(-300,130,900,200);x.fillStyle='#0e1519';x.fillRect(62,126,116,26);
- const sh=S.st&&t-S.st<350?Math.sin(t/25)*2:0,cx=120+sh,cy=108;
- if(S.fire||S.burn)for(let i=0;i<7;i++){const fx=cx-36+i*12,hh=(S.burn?22:10)+5*Math.sin(t/90+i*2);
-  x.fillStyle=S.burn?'#e8433a':'#ff8a1f';x.beginPath();x.moveTo(fx-5,128);x.lineTo(fx,128-hh);x.lineTo(fx+5,128);x.fill();
-  x.fillStyle='#ffd23c';x.beginPath();x.moveTo(fx-2.5,128);x.lineTo(fx,128-hh*.55);x.lineTo(fx+2.5,128);x.fill()}
- x.fillStyle='#1b1b1b';ell(cx,cy,50,15);x.fillRect(cx+46,cy-3,38,6);
- x.fillStyle=S.oil?'#7a6528':'#3b3b3b';ell(cx,cy-1,44,11);
- food(S.items,cx,cy,S.burn);
- S.sea.forEach((k,i)=>{x.fillStyle=SC[k];ell(cx-34+i*8,cy+7,2.5,2.5)});
- if(S.burn&&sm.length<40&&Math.random()<.6)sm.push({x:cx+Math.random()*50-25,y:cy-6,a:1});
- sm.forEach(p=>{p.y-=.7;p.x+=Math.sin(p.y/9)*.3;p.a-=.012;x.fillStyle='rgba(25,25,25,'+Math.max(0,p.a*.6)+')';ell(p.x,p.y,6+(1-p.a)*10,6+(1-p.a)*10)});sm=sm.filter(p=>p.a>0);
- x.fillStyle='#e9eef0';ell(240,140,36,11);x.fillStyle='#fff';ell(240,139,28,7);food(S.plate,240,136,S.burn);
- if(S.served&&!S.ok){x.font='20px sans-serif';x.fillText('💀',240,112)}
- x.font='38px sans-serif';x.textAlign='center';x.fillText('👨‍🍳',28,112+Math.sin(t/300)*2);
- if(S.face){x.font='22px sans-serif';x.fillText(S.face,44,72)}
- requestAnimationFrame(frame)}
+/* ---- ครัว 3 มิติ (three.js r128) ---- */
+const cv=$('#cv'),GL=!!window.THREE,O3=[[-.55,-.15],[.25,-.3],[-.1,.35],[.6,.1],[-.7,.4],[.35,.5]],SZ={egg:[1.3,.35,1.3],pork:[1,.7,1],basil:[1.2,.3,1.2],garlic:[.8,.8,.8],rice:[1.1,.5,1.1]},TX={};
+let ren,scn,cam,pan,plate,flames,smoke,seaG,chef,face,skull,glow,oilM,sg,ig,lw=0,lh=0;
+const tx=e=>TX[e]||(TX[e]=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.font='48px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(e,32,36);return new THREE.CanvasTexture(c)})());
+const spr=(e,s)=>{const p=new THREE.Sprite(new THREE.SpriteMaterial({map:tx(e),depthTest:false}));p.scale.set(s,s,1);return p};
+const std=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6},o));
+const box=(w,hh,d,c,px,py,pz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),std(c));m.position.set(px,py,pz);return m};
+const mk=i=>{const g=new THREE.Group(),m=new THREE.Mesh(ig,std(BC[i.k]));m.scale.set(...SZ[i.k]);g.add(m);const s=spr(E[i.k],.5);s.position.y=.5;g.add(s);g.userData={it:i,m};return g};
+if(GL){
+ ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});scn=new THREE.Scene();scn.background=new THREE.Color('#16303a');
+ cam=new THREE.PerspectiveCamera(38,1,.1,60);ig=new THREE.SphereGeometry(.26,16,12);sg=new THREE.SphereGeometry(.3,10,8);
+ const dl=new THREE.DirectionalLight('#fff',.9);dl.position.set(3,6,5);
+ glow=new THREE.PointLight('#ff7a1a',0,7);glow.position.set(-.9,1,.6);
+ scn.add(new THREE.AmbientLight('#9fb8c0',.7),dl,glow,box(14,1,5,'#2d4852',0,-.5,.5),box(14,6,.2,'#1f3d49',0,3,-2),box(3.2,.5,2.4,'#10181c',-.9,.25,0));
+ pan=new THREE.Group();pan.position.x=-.9;scn.add(pan);
+ const mt=std('#222',{side:2,roughness:.4,metalness:.5}),w=new THREE.Mesh(new THREE.CylinderGeometry(1.1,.9,.35,32,1,true),mt),fl=new THREE.Mesh(new THREE.CircleGeometry(.9,32),mt);
+ w.position.y=1.1;fl.rotation.x=-Math.PI/2;fl.position.y=.93;
+ oilM=new THREE.Mesh(new THREE.CircleGeometry(.85,32),std('#c9a227',{roughness:.2}));oilM.rotation.x=-Math.PI/2;oilM.position.y=.95;
+ pan.add(w,fl,oilM,box(1.5,.08,.22,'#1a1a1a',1.8,1.25,0));
+ flames=new THREE.Group();const fg=new THREE.ConeGeometry(.12,.5,8);
+ for(let i=0;i<8;i++){const a=i/8*6.283,f=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:'#ff8a1f'}));f.position.set(-.9+Math.cos(a)*.6,.75,Math.sin(a)*.6);flames.add(f)}
+ plate=new THREE.Group();plate.position.set(2.2,0,.9);const pl=new THREE.Mesh(new THREE.CylinderGeometry(.95,.8,.1,32),std('#f2f5f6',{roughness:.3}));pl.position.y=.05;
+ skull=spr('💀',.8);skull.position.y=1.2;plate.add(pl,skull);
+ smoke=new THREE.Group();seaG=new THREE.Group();
+ const wm=std('#fff'),cyl=(a,b,hh,y)=>{const e=new THREE.Mesh(new THREE.CylinderGeometry(a,b,hh,20),wm);e.position.y=y;return e},sp=(r,y,c)=>{const e=new THREE.Mesh(new THREE.SphereGeometry(r,20,16),c?std(c):wm);e.position.y=y;return e};
+ chef=new THREE.Group();chef.position.set(-2.9,0,-.7);chef.add(cyl(.45,.55,1.2,.6),sp(.32,1.5,'#f3c9a0'),cyl(.34,.3,.4,1.9),sp(.38,2.25));
+ face=spr('🙂',.55);face.position.set(0,1.5,.32);chef.add(face);
+ scn.add(flames,plate,smoke,seaG,chef);
+}
+function frame(t){if(!GL)return;requestAnimationFrame(frame);
+ const W=cv.clientWidth,H=cv.clientHeight;
+ if(W&&H&&(W!=lw||H!=lh)){lw=W;lh=H;ren.setPixelRatio(Math.min(devicePixelRatio||1,2));ren.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix()}
+ const d=Math.max(7,10.5/cam.aspect),sk=S.burn?(Math.random()-.5)*.08:0;
+ cam.position.set(sk,d*.42+sk,d*.9);cam.lookAt(0,.9,0);
+ pan.position.x=-.9+(S.st&&t-S.st<350?Math.sin(t/25)*.06:0);pan.visible=!!S.pan;oilM.visible=!!S.oil;
+ const live=new Set([...S.items,...S.plate]),dk=new THREE.Color('#1b0e06');
+ [pan,plate].forEach(g=>g.children.slice().forEach(c=>{if(c.userData.it&&!live.has(c.userData.it))g.remove(c)}));
+ [[S.items,pan,1.12,1],[S.plate,plate,.32,.6]].forEach(([a,g,y,k])=>a.forEach((i,j)=>{
+  if(!i.g)i.g=mk(i);if(i.g.parent!==g)g.add(i.g);const p=O3[j%6];i.g.position.set(p[0]*k,y+.1*(j/6|0),p[1]*k);
+  const mx=(R[lv].need[i.k]||[0,5])[1],r=S.burn?1:Math.min(1,i.c/(mx+1.5));i.g.userData.m.material.color.set(BC[i.k]).lerp(dk,r*r)}));
+ if(seaG.children.length!=S.sea.length){seaG.clear();S.sea.forEach((k,i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),std(SC[k]));m.position.set(-2+i*.3,.13,1.7);seaG.add(m)})}
+ const on=S.fire||S.burn;flames.visible=on;glow.intensity=on?(S.burn?2.2:1.2)+.3*Math.sin(t/70):0;
+ flames.children.forEach((f,i)=>{const s=(S.burn?1.8:1)*(1+.35*Math.sin(t/90+i*2));f.scale.y=s;f.position.y=.5+.25*s;f.material.color.set(S.burn?'#e8433a':'#ff8a1f')});
+ if(S.burn&&sm.length<40&&Math.random()<.6){const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:'#222',transparent:true})),p={m,a:1};m.userData.p=p;m.position.set(-.9+Math.random()-.5,1.3,Math.random()-.5);smoke.add(m);sm.push(p)}
+ sm.forEach(p=>{p.m.position.y+=.025;p.m.position.x+=Math.sin(p.m.position.y*4)*.004;p.a-=.01;p.m.material.opacity=Math.max(0,p.a*.65);p.m.scale.setScalar(1+(1-p.a)*2.2)});
+ sm=sm.filter(p=>p.a>0);smoke.children.slice().forEach(c=>{if(!sm.includes(c.userData.p))smoke.remove(c)});
+ skull.visible=!!(S.served&&!S.ok);chef.position.y=Math.abs(Math.sin(t/260))*.06;face.material.map=tx(S.face||'🙂');
+ ren.render(scn,cam)}
 rs();pal();hud();rw();requestAnimationFrame(frame);
 </script></body></html>
