@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>AlgoKitchen ครัวโค้ดตามสั่ง</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12232b;--p:#1b323c;--p2:#24424f;--tx:#eef3f2;--mu:#8fa8ae;--or:#f08a24;--bl:#3b8fd9;--pu:#8a5ad6;--yl:#ffc93c;--rd:#e8433a;--gn:#3fb97a}
+*{box-sizing:border-box;margin:0}[hidden]{display:none!important}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:13px Kanit,system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+#app{height:100%;display:grid;grid-template-columns:24% 36% 1fr;grid-template-rows:36px 1fr;gap:6px;padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+header{grid-column:1/-1;display:flex;align-items:center;gap:8px}
+header h1{font-size:16px;font-weight:600;flex:1;white-space:nowrap}
+#coin{color:var(--yl);font-weight:600}
+.pn{background:var(--p);border-radius:10px;min-height:0;min-width:0;position:relative;display:flex;flex-direction:column}
+.sc{overflow:auto;flex:1;padding:6px}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+.pb{display:block;width:100%;text-align:left;background:var(--c);color:#fff;font-weight:600;padding:6px 8px;border-radius:7px;margin-bottom:5px}
+.pb:active{filter:brightness(1.2)}
+.or{--c:var(--or)}.bl{--c:var(--bl)}.pu{--c:var(--pu)}
+.blk{background:var(--c);border-radius:7px;padding:4px 6px;margin:3px 0;color:#fff;font-weight:600}
+.blk.run{outline:3px solid var(--yl);box-shadow:0 0 12px var(--yl)}
+.blk.sel{outline:2px dashed #fff}
+.kid{margin:4px 0 2px 10px;padding:2px 4px;background:rgba(0,0,0,.25);border-radius:5px;min-height:16px}
+.row{display:flex;align-items:center;gap:4px}.row span:first-child{flex:1}
+.mini{background:rgba(0,0,0,.3);border-radius:4px;width:20px;height:20px;font-size:10px;line-height:20px;padding:0}
+select,input{font:inherit;font-size:12px;border-radius:5px;border:0;padding:1px 2px;width:auto}input{width:42px}
+.bar{display:flex;gap:6px;align-items:center;padding:6px;border-top:1px solid var(--p2)}
+.bar small{flex:1;color:var(--mu);text-align:right}
+.bt,#fs{background:var(--p2);padding:6px 10px;border-radius:7px;font-weight:600}
+#run{background:var(--gn);color:#06231a}
+.bt.go{background:var(--yl);color:#2a1d00}
+.lv{width:26px;height:26px;border-radius:50%;background:var(--p2);font-weight:600}.lv.on{background:var(--yl);color:#2a1d00}.lv:disabled{opacity:.5}
+canvas{flex:1;width:100%;min-height:0;display:block;border-radius:10px}
+#ord{position:absolute;top:6px;left:6px;max-width:62%;background:rgba(10,20,24,.78);padding:6px 8px;border-radius:8px;line-height:1.35}
+#res{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(10,20,24,.92);border:2px solid var(--yl);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;line-height:1.4}
+#res div{flex:1 1 100%}
+#rot{display:none;position:fixed;inset:0;z-index:9;background:var(--bg);align-items:center;justify-content:center;font-size:20px;text-align:center;padding:20px}
+@media (orientation:portrait) and (max-width:900px){#rot{display:flex}}
+</style></head><body>
+<div id="app">
+<header><h1>🍳 AlgoKitchen ครัวโค้ดตามสั่ง</h1><span id="lvs" style="display:flex;gap:4px"></span><span id="coin"></span><button id="fs">⛶ เต็มจอ</button></header>
+<div class="pn"><div class="sc" id="pal"></div></div>
+<div class="pn"><div class="sc" id="ws"></div><div class="bar"><button class="bt" id="run">▶ รัน</button><button class="bt" id="clr">🗑 ล้าง</button><small id="cnt"></small></div></div>
+<div class="pn"><canvas id="cv"></canvas><div id="ord"></div><div id="res" hidden></div></div>
+</div>
+<div id="rot">🔄<br>หมุนจอเป็นแนวนอนเพื่อเล่น</div>
+<script>
+const $=s=>document.querySelector(s),sl=ms=>new Promise(r=>setTimeout(r,ms));
+const h=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x)e.textContent=x;return e};
+const N={egg:'ไข่',pork:'หมูสับ',basil:'ใบกะเพรา',garlic:'กระเทียม',rice:'ข้าวสวย',fish:'น้ำปลา',oyster:'ซอสหอย',sugar:'น้ำตาล',chili:'พริก'};
+const E={egg:'🥚',pork:'🥩',basil:'🌿',garlic:'🧄',rice:'🍚'};
+const BC={egg:'#fff1b8',pork:'#e8949a',basil:'#3fae58',garlic:'#f1e4bd',rice:'#f7f7ef'};
+const SC={fish:'#c47a2a',oyster:'#4a2c1a',sugar:'#fff',chili:'#d02020'};
+const ING=['egg','pork','basil','garlic','rice'],SEA=['fish','oyster','sugar','chili'];
+const D={pan:{l:'ตั้งกระทะ',c:'bl'},fire:{l:'เปิดไฟ',c:'bl'},off:{l:'ปิดไฟ',c:'bl'},oil:{l:'ใส่น้ำมัน',c:'or'},
+add:{l:'ใส่',c:'or',o:ING},sea:{l:'ปรุงรส',c:'bl',o:SEA},stir:{l:'ผัด 1 ครั้ง',c:'bl'},serve:{l:'ตักใส่จาน',c:'bl'},
+loop:{l:'ทำซ้ำ',c:'pu',k:1,cost:40},until:{l:'ทำซ้ำจนกว่าสุก',c:'pu',k:1,cost:100}};
+/* เป้าหมายของแต่ละออเดอร์ = ผลลัพธ์ (จำนวนครั้งที่ผัดของแต่ละอย่าง) ไม่ใช่ลำดับตายตัว */
+const R=[
+{n:'ไข่ดาว',need:{egg:[2,4]},sea:[],par:7},
+{n:'ไข่เจียวหมูสับ',need:{egg:[3,5],pork:[3,5]},sea:['fish'],par:9},
+{n:'ผัดกะเพราหมูสับ',need:{garlic:[2,5],pork:[4,6],basil:[1,3]},sea:['oyster','fish'],par:14},
+{n:'ข้าวผัดไข่',need:{rice:[2,5],egg:[2,5]},sea:['fish'],par:9}];
+let G={u:0,c:0,own:{}};try{G=Object.assign(G,JSON.parse(localStorage.ak3))}catch(e){}
+const sv=()=>{try{localStorage.ak3=JSON.stringify(G)}catch(e){}};
+let lv=Math.min(G.u,R.length-1),P=[],sel=P,cur=null,busy=0,halt=0,steps=0,S,sm=[];const SP=420;
+const cnt=a=>a.reduce((n,b)=>n+1+cnt(b.b),0);
+function rs(){S={pan:0,fire:0,oil:0,items:[],sea:[],plate:[],burn:0,served:0,ok:0,st:0,face:''};sm=[];$('#res').hidden=1}
+function msg(t,btn,nx){const r=$('#res');r.innerHTML='<div>'+t+'</div>';r.hidden=0;
+ if(btn){const a=h('button','bt','ลองใหม่');a.onclick=rs;r.append(a);if(nx){const n=h('button','bt go','ด่านต่อไป');n.onclick=()=>go(lv+1);r.append(n)}}
+ else setTimeout(()=>r.hidden=1,1600)}
+function hud(){$('#coin').textContent='🪙 '+G.c;const l=$('#lvs');l.innerHTML='';
+ R.forEach((r,i)=>{const b=h('button','lv'+(i==lv?' on':''),i<=G.u?i+1:'🔒');b.disabled=i>G.u;b.onclick=()=>go(i);l.append(b)});
+ const r=R[lv];$('#ord').innerHTML='<b>ออเดอร์: '+r.n+'</b><br>'+Object.keys(r.need).map(k=>E[k]+N[k]+' ผัด '+r.need[k][0]+'–'+r.need[k][1]+' ครั้ง').join(' · ')+(r.sea.length?'<br>ปรุง: '+r.sea.map(k=>N[k]).join(' + '):'')+'<br>ไม่ไหม้ แล้วตักใส่จาน'}
+function go(i){if(busy)return;lv=i;P.length=0;sel=P;rs();hud();rw()}
+function pal(){const p=$('#pal');p.innerHTML='';for(const t in D){const d=D[t],b=h('button','pb '+d.c,(d.cost&&!G.own[t]?'🔒 '+d.cost+'🪙 ':'')+d.l+(d.o?' ▾':''));b.onclick=()=>pick(t);p.append(b)}}
+function pick(t){const d=D[t];
+ if(d.cost&&!G.own[t]){if(G.c<d.cost)return msg('เหรียญไม่พอ ต้องใช้ '+d.cost+' 🪙');G.c-=d.cost;G.own[t]=1;sv();hud();pal();return}
+ const b={t,v:d.o?d.o[0]:3,b:[]};sel.push(b);if(d.k)sel=b.b;rw()}
+function rw(){const w=$('#ws');w.innerHTML='';tree(P,w);$('#cnt').textContent=cnt(P)+' บล็อค (เป้า ≤ '+R[lv].par+')'}
+function tree(a,el){a.forEach((b,i)=>{const d=D[b.t],x=h('div','blk '+d.c+(b===cur?' run':'')),r=h('div','row');r.append(h('span','',d.l));
+ if(d.o){const s=h('select');d.o.forEach(o=>s.add(new Option(N[o],o)));s.value=b.v;s.onchange=()=>b.v=s.value;s.onclick=e=>e.stopPropagation();r.append(s)}
+ if(b.t=='loop'){const n=h('input');n.type='number';n.value=b.v;n.onclick=e=>e.stopPropagation();n.onchange=()=>b.v=Math.max(1,Math.min(20,+n.value||1));r.append(n,h('span','','รอบ'))}
+ [['▲',-1],['▼',1],['✕',0]].forEach(([t,m])=>{const q=h('button','mini',t);q.onclick=e=>{e.stopPropagation();if(busy)return;
+  if(!m){a.splice(i,1);sel=P}else{const j=i+m;if(j>=0&&j<a.length)[a[i],a[j]]=[a[j],a[i]]}rw()};r.append(q)});
+ x.append(r);if(d.k){if(b.b===sel)x.classList.add('sel');x.onclick=e=>{e.stopPropagation();sel=b.b;rw()};const k=h('div','kid');tree(b.b,k);x.append(k)}
+ el.append(x)})}
+$('#ws').onclick=()=>{sel=P;rw()};
+/* ---- ตัวรันโปรแกรม ---- */
+const done=()=>S.items.length&&S.items.every(i=>i.c>=(R[lv].need[i.k]||[3])[0]);
+function fail(m){S.burn=/ไหม้/.test(m);S.face='😡';msg('❌ '+m,1)}
+function judge(){const r=R[lv],m=[],it=S.items;
+ for(const k in r.need){const a=it.filter(i=>i.k==k);if(!a.length)m.push('ขาด'+N[k]);else if(a.length>1)m.push('ใส่'+N[k]+'ซ้ำ');else if(a[0].c<r.need[k][0])m.push(N[k]+'ยังไม่สุก (ผัด '+a[0].c+' ครั้ง ต้องอย่างน้อย '+r.need[k][0]+')')}
+ it.forEach(i=>{if(!r.need[i.k])m.push('ใส่'+N[i.k]+'ซึ่งไม่อยู่ในสูตร')});
+ r.sea.forEach(k=>{if(!S.sea.includes(k))m.push('ลืมปรุง'+N[k])});S.sea.forEach(k=>{if(!r.sea.includes(k))m.push('ปรุงด้วย'+N[k]+'ผิดสูตร')});
+ S.plate=it;S.items=[];S.served=1;
+ if(m.length){S.face='😡';return msg('❌ '+m.slice(0,3).join('<br>❌ '),1)}
+ const n=cnt(P),st=n<=r.par?3:n<=r.par+3?2:1,co=20+20*st;S.ok=1;S.face='😋';G.c+=co;if(lv==G.u&&lv<R.length-1)G.u++;sv();hud();pal();
+ msg('⭐'.repeat(st)+' สำเร็จ! +'+co+' 🪙<br><small>ใช้ '+n+' บล็อค (3 ดาว = ไม่เกิน '+r.par+')</small>',1,lv<R.length-1)}
+function stp(b){const t=b.t;
+ if(['fire','oil','add','sea','stir'].includes(t)&&!S.pan)throw{f:'ยังไม่ได้ตั้งกระทะ'};
+ if(t=='pan')S.pan=1;if(t=='fire')S.fire=1;if(t=='off')S.fire=0;if(t=='oil')S.oil=1;
+ if(t=='add')S.items.push({k:b.v,c:0});if(t=='sea')S.sea.push(b.v);
+ if(t=='stir'){S.st=performance.now();if(S.fire){S.items.forEach(i=>i.c+=S.oil?1:2);
+  if(S.items.length&&!S.oil)throw{f:'อาหารไหม้! ลืมใส่น้ำมันก่อนผัด'};
+  S.items.forEach(i=>{const n=R[lv].need[i.k];if(n&&i.c>n[1])throw{f:N[i.k]+'ไหม้เกรียม! ผัดเกิน '+n[1]+' ครั้ง'}})}}
+ if(t=='serve')judge()}
+async function ex(a){for(const b of a){if(halt)throw'stop';cur=b;rw();await sl(SP);if(++steps>300)throw{f:'โปรแกรมทำงานนานเกินไป (วนซ้ำไม่จบ?)'};
+ stp(b);if(S.served)throw'end';
+ if(b.t=='loop')for(let i=0;i<b.v;i++)await ex(b.b);
+ if(b.t=='until'){let g=0;while(!done()&&g++<20&&b.b.length)await ex(b.b)}}}
+async function run(){rs();busy=1;halt=0;steps=0;$('#run').textContent='⏹ หยุด';
+ try{await ex(P);if(!S.served)throw{f:'โค้ดจบแล้วแต่ยังไม่ได้ตักใส่จาน'}}
+ catch(e){if(e&&e.f)fail(e.f);else if(e!='stop'&&e!='end')console.error(e)}
+ busy=0;cur=null;$('#run').textContent='▶ รัน';rw()}
+$('#run').onclick=()=>busy?halt=1:run();
+$('#clr').onclick=()=>go(lv);
+const fs=$('#fs');if(!document.documentElement.requestFullscreen)fs.hidden=1;
+fs.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}}catch(e){}};
+/* ---- วาดครัว ---- */
+const cv=$('#cv'),x=cv.getContext('2d'),O=[[-20,-2],[8,-3],[-6,4],[22,1],[-30,4],[14,6]];
+const mix=(a,b,t)=>{const f=q=>[1,3,5].map(i=>parseInt(q.substr(i,2),16)),A=f(a),B=f(b);return'rgb('+A.map((v,i)=>v+(B[i]-v)*t|0)+')'};
+const ell=(a,b,rx,ry)=>{x.beginPath();x.ellipse(a,b,rx,ry,0,0,7);x.fill()};
+function food(a,ox,oy,burn){a.forEach((i,j)=>{const p=O[j%6],mx=(R[lv].need[i.k]||[0,5])[1],r=burn?1:Math.min(1,i.c/(mx+1.5));
+ x.fillStyle=mix(BC[i.k],'#1b0e06',r*r);ell(ox+p[0],oy+p[1],9,9);x.font='11px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(E[i.k],ox+p[0],oy+p[1]+1)})}
+function frame(t){const W=cv.clientWidth,H=cv.clientHeight,d=devicePixelRatio||1;
+ if(cv.width!=W*d||cv.height!=H*d){cv.width=W*d;cv.height=H*d}
+ x.setTransform(1,0,0,1,0,0);x.fillStyle='#16303a';x.fillRect(0,0,cv.width,cv.height);
+ const s=Math.min(W/300,H/200)*d;x.setTransform(s,0,0,s,(cv.width-300*s)/2,(cv.height-200*s)/2);
+ x.fillStyle='#2d4852';x.fillRect(-300,130,900,200);x.fillStyle='#0e1519';x.fillRect(62,126,116,26);
+ const sh=S.st&&t-S.st<350?Math.sin(t/25)*2:0,cx=120+sh,cy=108;
+ if(S.fire||S.burn)for(let i=0;i<7;i++){const fx=cx-36+i*12,hh=(S.burn?22:10)+5*Math.sin(t/90+i*2);
+  x.fillStyle=S.burn?'#e8433a':'#ff8a1f';x.beginPath();x.moveTo(fx-5,128);x.lineTo(fx,128-hh);x.lineTo(fx+5,128);x.fill();
+  x.fillStyle='#ffd23c';x.beginPath();x.moveTo(fx-2.5,128);x.lineTo(fx,128-hh*.55);x.lineTo(fx+2.5,128);x.fill()}
+ x.fillStyle='#1b1b1b';ell(cx,cy,50,15);x.fillRect(cx+46,cy-3,38,6);
+ x.fillStyle=S.oil?'#7a6528':'#3b3b3b';ell(cx,cy-1,44,11);
+ food(S.items,cx,cy,S.burn);
+ S.sea.forEach((k,i)=>{x.fillStyle=SC[k];ell(cx-34+i*8,cy+7,2.5,2.5)});
+ if(S.burn&&sm.length<40&&Math.random()<.6)sm.push({x:cx+Math.random()*50-25,y:cy-6,a:1});
+ sm.forEach(p=>{p.y-=.7;p.x+=Math.sin(p.y/9)*.3;p.a-=.012;x.fillStyle='rgba(25,25,25,'+Math.max(0,p.a*.6)+')';ell(p.x,p.y,6+(1-p.a)*10,6+(1-p.a)*10)});sm=sm.filter(p=>p.a>0);
+ x.fillStyle='#e9eef0';ell(240,140,36,11);x.fillStyle='#fff';ell(240,139,28,7);food(S.plate,240,136,S.burn);
+ if(S.served&&!S.ok){x.font='20px sans-serif';x.fillText('💀',240,112)}
+ x.font='38px sans-serif';x.textAlign='center';x.fillText('👨‍🍳',28,112+Math.sin(t/300)*2);
+ if(S.face){x.font='22px sans-serif';x.fillText(S.face,44,72)}
+ requestAnimationFrame(frame)}
+rs();pal();hud();rw();requestAnimationFrame(frame);
+</script></body></html>
