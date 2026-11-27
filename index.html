@@ -3,10 +3,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>AlgoCraft 3D - Block Categories & Drag-and-Drop Edition</title>
-  <link rel="stylesheet" href="css/theme.css" />
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/components.css" />
+  <title>AlgoCraft 3D - Standalone v3</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-card: #334155;
+      --border-subtle: rgba(148, 163, 184, 0.22);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --cat-motion: #2563eb;
+      --cat-events: #eab308;
+      --cat-control: #f97316;
+      --cat-operation: #16a34a;
+      --cat-sensing: #06b6d4;
+      --cat-variable: #ea580c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden;
+      background: var(--bg-dark); color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+    .topbar {
+      height: 50px; background: #0b1120; border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px; gap: 6px; overflow-x: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .logo-badge {
+      font-weight: 800; font-size: 14px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+    .shop-tabs, .controls-group, .stats-bar { display: flex; align-items: center; gap: 4px; }
+
+    .tab-btn {
+      background: var(--bg-panel); color: var(--text-muted);
+      border: 1px solid var(--border-subtle); padding: 4px 8px;
+      border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .tab-btn.active { background: #38bdf8; color: #090d16; border-color: #38bdf8; }
+
+    .select-pill {
+      background: var(--bg-panel); color: var(--text-main);
+      border: 1px solid var(--border-subtle); padding: 4px 6px;
+      border-radius: 6px; font-size: 11.5px; cursor: pointer;
+    }
+    .stat-pill {
+      padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-subtle); white-space: nowrap;
+    }
+    .level-pill { color: #38bdf8; }
+    .xp-pill { color: #c084fc; }
+    .coin-pill { color: #fbbf24; }
+
+    .icon-btn {
+      background: var(--bg-card); color: var(--text-main);
+      border: 1px solid var(--border-subtle); padding: 4px 8px;
+      border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .market-btn { background: linear-gradient(135deg, #f59e0b, #d97706); color: #090d16; border: none; }
+
+    .workspace-grid {
+      display: grid; grid-template-columns: 275px 1fr 37%;
+      height: calc(100vh - 50px); gap: 8px; padding: 8px;
+    }
+    .panel {
+      background: var(--bg-panel); border: 1px solid var(--border-subtle);
+      border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .panel-header {
+      padding: 7px 10px; background: rgba(15, 23, 42, 0.55);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .panel-header h3 { font-size: 12.5px; font-weight: 700; }
+
+    .cat-filter-bar {
+      display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px;
+      background: rgba(15, 23, 42, 0.35); border-bottom: 1px solid var(--border-subtle);
+    }
+    .cat-chip {
+      background: #0f172a; color: #cbd5e1; border: 1px solid var(--border-subtle);
+      border-radius: 999px; padding: 2px 7px; font-size: 10.5px; font-weight: 700; cursor: pointer;
+    }
+    .cat-chip.active { background: #38bdf8; color: #090d16; border-color: #38bdf8; }
+
+    .palette-scroll {
+      flex: 1; overflow-y: auto; padding: 8px;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .cat-header {
+      font-size: 10.5px; font-weight: 800; color: #94a3b8;
+      letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;
+    }
+
+    .palette-block, .code-block {
+      padding: 6px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 600;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      border-left: 4px solid rgba(255,255,255,0.55);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.28); white-space: nowrap;
+    }
+    .palette-block { cursor: grab; }
+    .palette-block:active { cursor: grabbing; }
+    .palette-block.locked { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.75); }
+
+    .code-dropzone {
+      flex: 1; overflow-y: auto; padding: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+      transition: background 0.15s, outline 0.15s;
+    }
+    .code-dropzone.drag-over { outline: 2px dashed #38bdf8; background: rgba(56, 189, 248, 0.08); }
+
+    .code-block.active-step { outline: 2px solid #fde047; box-shadow: 0 0 12px rgba(253, 224, 71, 0.6); }
+    .code-block select {
+      background: rgba(0,0,0,0.35); color: #fff;
+      border: 1px solid rgba(255,255,255,0.25); border-radius: 4px; padding: 1px 4px; font-size: 11px;
+    }
+    .block-controls { display: flex; gap: 3px; }
+    .block-controls button {
+      background: rgba(0,0,0,0.35); border: none; color: #fff;
+      width: 18px; height: 18px; border-radius: 4px; cursor: pointer; font-size: 10px;
+    }
+
+    .cat-motion { background: var(--cat-motion); color: #fff; }
+    .cat-events { background: var(--cat-events); color: #090d16; }
+    .cat-control { background: var(--cat-control); color: #fff; }
+    .cat-operation { background: var(--cat-operation); color: #fff; }
+    .cat-sensing { background: var(--cat-sensing); color: #090d16; }
+    .cat-variable { background: var(--cat-variable); color: #fff; }
+
+    .action-btn {
+      border: none; padding: 4px 8px; border-radius: 6px;
+      font-size: 11.5px; font-weight: 700; cursor: pointer;
+    }
+    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .run-btn { background: #22c55e; color: #052e16; }
+    .stop-btn { background: #ef4444; color: #fff; }
+    .clear-btn { background: #475569; color: #fff; }
+    .sample-btn { background: #38bdf8; color: #082f49; }
+
+    .mini-btn {
+      background: var(--bg-card); color: #fff;
+      border: 1px solid var(--border-subtle); border-radius: 4px;
+      padding: 2px 6px; font-size: 11px; cursor: pointer;
+    }
+    .badge-sub {
+      font-size: 10.5px; color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12); padding: 2px 6px; border-radius: 4px;
+    }
+
+    .goal-banner {
+      background: rgba(15, 23, 42, 0.75); border-bottom: 1px solid var(--border-subtle);
+      padding: 7px 10px; font-size: 11.5px; line-height: 1.4;
+    }
+    .goal-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .goal-tag {
+      background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #86efac; padding: 1px 6px; border-radius: 4px; font-size: 10.5px;
+    }
+
+    .sandbox-bar {
+      display: flex; gap: 6px; padding: 5px 10px;
+      background: rgba(168, 85, 247, 0.15); border-bottom: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .sandbox-bar input {
+      flex: 1; background: #0f172a; border: 1px solid #475569;
+      color: #fff; padding: 3px 8px; border-radius: 5px; font-size: 11.5px;
+    }
+    .hidden { display: none !important; }
+
+    .empty-hint {
+      text-align: center; color: var(--text-muted); font-size: 11.5px;
+      margin-top: 24px; padding: 14px; border: 1px dashed #475569; border-radius: 8px;
+    }
+
+    .canvas-wrapper {
+      position: relative; flex: 1; width: 100%; height: 100%;
+      background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+      overflow: hidden;
+    }
+    #sim-canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    #sim-canvas:active { cursor: grabbing; }
+
+    .sim-toast {
+      position: absolute; bottom: 8px; left: 8px; right: 8px;
+      background: rgba(15, 23, 42, 0.88); border: 1px solid var(--border-subtle);
+      padding: 6px 10px; border-radius: 7px; font-size: 11.5px; text-align: center;
+    }
+    .result-modal {
+      position: absolute; inset: 14px;
+      background: rgba(15, 23, 42, 0.95); border: 2px solid #38bdf8;
+      border-radius: 12px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 14px;
+      text-align: center; gap: 8px; z-index: 20;
+    }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-card {
+      width: min(700px, 92vw); max-height: 82vh;
+      background: var(--bg-panel); border: 1px solid var(--border-subtle);
+      border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header {
+      padding: 10px 14px; background: #0b1120;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h2 { font-size: 14px; }
+    .close-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; }
+    .market-tabs { display: flex; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); }
+    .m-tab {
+      background: var(--bg-card); color: var(--text-muted); border: none;
+      padding: 5px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+    }
+    .m-tab.active { background: #f59e0b; color: #090d16; }
+    .market-grid {
+      padding: 14px; overflow-y: auto;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px;
+    }
+    .market-item {
+      background: #0f172a; border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 9px; display: flex;
+      flex-direction: column; justify-content: space-between; gap: 6px;
+    }
+    .market-item h4 { font-size: 12.5px; }
+    .market-item p { font-size: 10.5px; color: var(--text-muted); }
+
+    .rotate-overlay { display: none; }
+    @media (orientation: portrait) and (max-width: 768px) {
+      .rotate-overlay {
+        position: fixed; inset: 0; z-index: 9999;
+        background: #090d16; display: flex; align-items: center; justify-content: center;
+        text-align: center; padding: 20px;
+      }
+      .rotate-icon { font-size: 48px; margin-bottom: 12px; }
+    }
+  </style>
 </head>
 <body>
   <div id="rotate-overlay" class="rotate-overlay">
@@ -20,7 +261,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="logo-badge">⚡ AlgoCraft 3D</span>
-      <nav class="shop-tabs" id="shop-tabs">
+      <nav class="shop-tabs">
         <button class="tab-btn active" data-shop="kitchen">🍳 ตามสั่ง</button>
         <button class="tab-btn" data-shop="boba">🧋 ชานม</button>
         <button class="tab-btn" data-shop="repair">📱 ซ่อมมือถือ</button>
@@ -34,15 +275,12 @@
         <option value="hard">🔴 ยาก</option>
         <option value="sandbox">🛠️ Sandbox</option>
       </select>
-
       <select id="level-select" class="select-pill" title="เลือกด่าน"></select>
-
       <div class="stats-bar">
         <span class="stat-pill level-pill" id="stat-level">Lv.1</span>
         <span class="stat-pill xp-pill" id="stat-xp">XP 0/100</span>
         <span class="stat-pill coin-pill" id="stat-coins">🪙 200</span>
       </div>
-
       <button id="btn-market" class="icon-btn market-btn">🛒 ร้านค้า</button>
       <button id="btn-audio" class="icon-btn" title="เสียง">🔊</button>
       <button id="btn-fullscreen" class="icon-btn" title="เต็มจอ">⛶</button>
@@ -50,8 +288,7 @@
   </header>
 
   <main class="workspace-grid">
-    <!-- Left Column: 6-Category Block Palette -->
-    <section class="panel palette-panel">
+    <section class="panel">
       <div class="panel-header">
         <h3>🧩 บล็อค (ลากไปวาง)</h3>
         <span class="badge-sub" id="palette-shop-label">ตามสั่ง</span>
@@ -68,8 +305,7 @@
       <div class="palette-scroll" id="palette-container"></div>
     </section>
 
-    <!-- Center Column: Drag-and-Drop Algorithm Workspace -->
-    <section class="panel editor-panel">
+    <section class="panel">
       <div class="panel-header">
         <h3>⚙️ พื้นที่ต่อบล็อค (<span id="block-count">0</span>)</h3>
         <div class="editor-actions">
@@ -87,13 +323,10 @@
         <button id="btn-save-sandbox" class="action-btn sample-btn">💾 บันทึก</button>
       </div>
 
-      <div id="code-dropzone" class="code-dropzone">
-        <div class="empty-hint" id="empty-hint">ลากบล็อคจากด้านซ้ายมาวางที่นี่เท่านั้น (ไม่รองรับการคลิกเพิ่ม)</div>
-      </div>
+      <div id="code-dropzone" class="code-dropzone"></div>
     </section>
 
-    <!-- Right Column: 3D Viewport -->
-    <section class="panel viewport-panel">
+    <section class="panel">
       <div class="panel-header">
         <h3>🧊 มุมมอง 3D</h3>
         <div class="cam-controls">
@@ -124,6 +357,988 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js"></script>
+  <script>
+  (function() {
+    const BLOCK_CATEGORIES = [
+      { key: 'motion', label: 'Motion' },
+      { key: 'events', label: 'Events' },
+      { key: 'control', label: 'Control' },
+      { key: 'operation', label: 'Operation' },
+      { key: 'sensing', label: 'Sensing' },
+      { key: 'variable', label: 'Variable' }
+    ];
+
+    const SHOP_BLOCKS = {
+      kitchen: [
+        { id: 'ev_start', label: '🚩 เริ่มทำเมนู', cat: 'events' },
+        { id: 'ev_stove_on', label: '🔥 เปิดเตา', cat: 'events' },
+        { id: 'set_pan', label: '🍳 วางกระทะ', cat: 'motion' },
+        { id: 'pour_oil', label: '🛢️ เทน้ำมัน', cat: 'motion' },
+        { id: 'toss_garlic', label: '🧄 ใส่กระเทียม', cat: 'motion' },
+        {
+          id: 'put_meat', label: '🥩 ใส่เนื้อ', cat: 'motion',
+          options: [
+            { val: 'pork', text: 'หมูสับ' },
+            { val: 'egg', text: 'ไข่ไก่' },
+            { val: 'crispy_pork', text: 'หมูกรอบ', reqItem: 'ing_crispy_pork' },
+            { val: 'river_prawn', text: 'กุ้งแม่น้ำ', reqItem: 'ing_river_prawn' }
+          ]
+        },
+        {
+          id: 'put_veg', label: '🌿 ใส่ผัก/ข้าว', cat: 'motion',
+          options: [
+            { val: 'basil', text: 'กะเพรา' },
+            { val: 'rice', text: 'ข้าวสวย' },
+            { val: 'kale', text: 'คะน้า' }
+          ]
+        },
+        { id: 'stir_once', label: '🥄 ผัด 1 ครั้ง', cat: 'motion' },
+        { id: 'plate_up', label: '🍽️ ตักเสิร์ฟ', cat: 'motion' },
+        {
+          id: 'loop_next', label: '🔁 ทำซ้ำถัดไป', cat: 'control', unlockKey: 'blk_loop',
+          options: [{ val: '2', text: '2x' }, { val: '3', text: '3x' }, { val: '4', text: '4x' }]
+        },
+        {
+          id: 'set_heat', label: '🌡️ ระดับไฟ', cat: 'control', unlockKey: 'blk_heat',
+          options: [{ val: 'low', text: 'อ่อน' }, { val: 'medium', text: 'กลาง' }, { val: 'high', text: 'แรง' }]
+        },
+        { id: 'if_guard', label: '🛡️ ถ้าไฟแรง→ลดไฟ', cat: 'control', unlockKey: 'blk_if' },
+        {
+          id: 'add_sauce', label: '🧂 ปรุงรส', cat: 'operation',
+          options: [
+            { val: 'oyster_sauce', text: 'หอยนางรม' },
+            { val: 'soy_sauce', text: 'ซีอิ๊วขาว' },
+            { val: 'tomyum_paste', text: 'พริกเผา' }
+          ]
+        },
+        { id: 'sense_oil', label: '👁️ เช็คน้ำมัน', cat: 'sensing' },
+        { id: 'sense_heat', label: '🌡️ เช็คความร้อน', cat: 'sensing' },
+        { id: 'var_stir_plus', label: '📊 นับผัด +1', cat: 'variable' }
+      ],
+      boba: [
+        { id: 'ev_start', label: '🚩 เริ่มชงแก้ว', cat: 'events' },
+        { id: 'take_cup', label: '🥤 วางแก้ว', cat: 'motion' },
+        {
+          id: 'scoop_top', label: '⚫ ตักท็อปปิ้ง', cat: 'motion',
+          options: [
+            { val: 'tapioca', text: 'ไข่มุกดำ' },
+            { val: 'pudding', text: 'พุดดิ้ง' },
+            { val: 'brown_sugar', text: 'บราวน์ชูการ์', reqItem: 'ing_brown_sugar' }
+          ]
+        },
+        { id: 'put_ice', label: '🧊 ใส่น้ำแข็ง', cat: 'motion' },
+        {
+          id: 'pour_tea', label: '🍵 รินชา', cat: 'motion',
+          options: [
+            { val: 'assam_milk', text: 'ชานม' },
+            { val: 'matcha_latte', text: 'มัทฉะ' },
+            { val: 'thai_tea', text: 'ชาไทย' }
+          ]
+        },
+        { id: 'add_cheese', label: '🧀 ท็อปชีส', cat: 'motion', reqItem: 'ing_cheese_foam' },
+        { id: 'shake_once', label: '🍸 เขย่า 1 ครั้ง', cat: 'motion' },
+        { id: 'seal_cup', label: '✨ ซีลฝา', cat: 'motion' },
+        {
+          id: 'loop_next', label: '🔁 ทำซ้ำถัดไป', cat: 'control', unlockKey: 'blk_loop',
+          options: [{ val: '2', text: '2x' }, { val: '3', text: '3x' }]
+        },
+        {
+          id: 'set_sweet', label: '🍯 ความหวาน', cat: 'operation',
+          options: [{ val: '50', text: '50%' }, { val: '100', text: '100%' }]
+        },
+        { id: 'sense_cup', label: '👁️ เช็คแก้ว', cat: 'sensing' },
+        { id: 'var_shake_plus', label: '📊 นับเขย่า +1', cat: 'variable' }
+      ],
+      repair: [
+        { id: 'ev_start', label: '🚩 เริ่มงานซ่อม', cat: 'events' },
+        { id: 'power_off', label: '🔌 ปิดเครื่อง', cat: 'motion' },
+        { id: 'open_case', label: '🪛 เปิดฝาหลัง', cat: 'motion' },
+        { id: 'unplug_batt', label: '🔋 ถอดขั้วแบต', cat: 'motion' },
+        {
+          id: 'swap_part', label: '🔧 เปลี่ยนอะไหล่', cat: 'motion',
+          options: [
+            { val: 'std_screen', text: 'จอ LCD' },
+            { val: 'std_battery', text: 'แบต 4500' },
+            { val: 'oled_120hz', text: 'OLED 120Hz', reqItem: 'part_oled' },
+            { val: 'batt_6000', text: 'แบต 6000', reqItem: 'part_batt6000' }
+          ]
+        },
+        { id: 'clean_pcb', label: '🪥 ปัดบอร์ด', cat: 'motion' },
+        { id: 'plug_batt', label: '⚡ เสียบขั้วแบต', cat: 'motion' },
+        { id: 'boot_phone', label: '📱 เปิดทดสอบ', cat: 'motion' },
+        {
+          id: 'loop_next', label: '🔁 ทำซ้ำถัดไป', cat: 'control', unlockKey: 'blk_loop',
+          options: [{ val: '2', text: '2x' }, { val: '3', text: '3x' }]
+        },
+        { id: 'op_cal_touch', label: '⚙️ คาลิเบรตจอ', cat: 'operation' },
+        { id: 'sense_volt', label: '⚡ เช็คไฟแบต', cat: 'sensing' },
+        { id: 'var_step_plus', label: '📊 นับขั้นตอน +1', cat: 'variable' }
+      ]
+    };
+
+    const MARKET_CATALOG = {
+      blocks: [
+        { id: 'blk_loop', name: '🔁 Loop ทำซ้ำ', desc: 'ทำซ้ำบล็อคถัดไป 2x–4x', price: 120 },
+        { id: 'blk_heat', name: '🌡️ ระดับไฟ', desc: 'เลือกไฟอ่อน/กลาง/แรง', price: 150 },
+        { id: 'blk_if', name: '🛡️ กันไหม้ IF', desc: 'ลดไฟเมื่อไฟแรงอัตโนมัติ', price: 220 }
+      ],
+      ingredients: [
+        { id: 'ing_crispy_pork', name: '🥓 หมูกรอบ', desc: 'วัตถุดิบเมนูพิเศษ', price: 100 },
+        { id: 'ing_river_prawn', name: '🦐 กุ้งแม่น้ำ', desc: 'วัตถุดิบเมนูพิเศษ', price: 140 },
+        { id: 'ing_brown_sugar', name: '🧋 บราวน์ชูการ์', desc: 'ท็อปปิ้งชานมพิเศษ', price: 110 },
+        { id: 'ing_cheese_foam', name: '🧀 วิปชีส', desc: 'ท็อปปิ้งชีสพ่นไฟ', price: 130 },
+        { id: 'part_oled', name: '🖥️ จอ OLED', desc: 'อะไหล่จอ 120Hz', price: 160 },
+        { id: 'part_batt6000', name: '🔋 แบต 6000', desc: 'แบตความจุสูง', price: 140 }
+      ]
+    };
+
+    const SHOP_LEVELS = {
+      kitchen: [
+        {
+          id: 'k1', reqPlayerLv: 1, title: 'ด่าน 1: ไข่เจียวหมูสับ',
+          desc: 'วางกระทะ เทน้ำมัน ใส่ไข่+หมูสับ ปรุงรส ผัด >= 2 ครั้ง แล้วตักเสิร์ฟ',
+          goals: ['กระทะ + น้ำมัน', 'ไข่ + หมูสับ', 'ปรุงรส', 'ผัด >= 2 ครั้ง', 'ตักเสิร์ฟ'],
+          rewardCoins: 80, rewardXp: 60,
+          sample: [
+            { id: 'ev_start' }, { id: 'ev_stove_on' }, { id: 'set_pan' }, { id: 'pour_oil' },
+            { id: 'put_meat', val: 'egg' }, { id: 'put_meat', val: 'pork' },
+            { id: 'add_sauce', val: 'soy_sauce' },
+            { id: 'stir_once' }, { id: 'stir_once' }, { id: 'plate_up' }
+          ],
+          evaluate(st) {
+            if (st.burnt) return { ok: false, reason: 'อาหารไหม้! ลืมน้ำมันหรือผัดนานเกินไป' };
+            if (!st.panOn || !st.hasOil) return { ok: false, reason: 'ลืมวางกระทะหรือเทน้ำมัน' };
+            if (!st.proteins.includes('egg') || !st.proteins.includes('pork')) return { ok: false, reason: 'ต้องใส่ทั้งไข่ไก่และหมูสับ' };
+            if (st.seasonings.length === 0) return { ok: false, reason: 'ลืมปรุงรส' };
+            if (st.stirCount < 2) return { ok: false, reason: 'ต้องผัดอย่างน้อย 2 ครั้ง' };
+            if (!st.served) return { ok: false, reason: 'ยังไม่ได้ตักเสิร์ฟ' };
+            return { ok: true };
+          }
+        },
+        {
+          id: 'k2', reqPlayerLv: 1, title: 'ด่าน 2: ผัดกะเพราหมูสับ',
+          desc: 'เทน้ำมัน ใส่กระเทียม หมูสับ กะเพรา ซอสหอยนางรม ผัด >= 2 ครั้ง แล้วตักเสิร์ฟ',
+          goals: ['น้ำมัน + กระเทียม', 'หมูสับ + กะเพรา', 'หอยนางรม', 'ผัด >= 2 ครั้ง', 'ตักเสิร์ฟ'],
+          rewardCoins: 110, rewardXp: 80,
+          sample: [
+            { id: 'ev_start' }, { id: 'set_pan' }, { id: 'pour_oil' }, { id: 'toss_garlic' },
+            { id: 'put_meat', val: 'pork' }, { id: 'put_veg', val: 'basil' },
+            { id: 'add_sauce', val: 'oyster_sauce' },
+            { id: 'stir_once' }, { id: 'stir_once' }, { id: 'plate_up' }
+          ],
+          evaluate(st) {
+            if (st.burnt) return { ok: false, reason: 'กะเพราไหม้!' };
+            if (!st.hasOil || !st.hasGarlic) return { ok: false, reason: 'ขาดน้ำมันหรือกระเทียม' };
+            if (!st.proteins.includes('pork') || !st.vegs.includes('basil')) return { ok: false, reason: 'ขาดหมูสับหรือกะเพรา' };
+            if (!st.seasonings.includes('oyster_sauce')) return { ok: false, reason: 'ต้องปรุงรสหอยนางรม' };
+            if (st.stirCount < 2) return { ok: false, reason: 'ผัดยังไม่พอ' };
+            if (!st.served) return { ok: false, reason: 'ยังไม่ได้ตักเสิร์ฟ' };
+            return { ok: true };
+          }
+        },
+        {
+          id: 'k3', reqPlayerLv: 2, title: 'ด่าน 3: ข้าวผัดไข่',
+          desc: 'ด่าน Lv.2: เทน้ำมัน กระเทียม ไข่ไก่ ข้าวสวย ซีอิ๊วขาว ผัด >= 3 ครั้ง แล้วตักเสิร์ฟ',
+          goals: ['น้ำมัน + กระเทียม', 'ไข่ + ข้าวสวย', 'ซีอิ๊วขาว', 'ผัด >= 3 ครั้ง', 'ตักเสิร์ฟ'],
+          rewardCoins: 140, rewardXp: 100,
+          sample: [
+            { id: 'ev_start' }, { id: 'set_pan' }, { id: 'pour_oil' }, { id: 'toss_garlic' },
+            { id: 'put_meat', val: 'egg' }, { id: 'put_veg', val: 'rice' },
+            { id: 'add_sauce', val: 'soy_sauce' },
+            { id: 'stir_once' }, { id: 'stir_once' }, { id: 'stir_once' }, { id: 'plate_up' }
+          ],
+          evaluate(st) {
+            if (st.burnt) return { ok: false, reason: 'ข้าวผัดไหม้!' };
+            if (!st.hasOil || !st.hasGarlic) return { ok: false, reason: 'ขาดน้ำมันหรือกระเทียม' };
+            if (!st.proteins.includes('egg') || !st.vegs.includes('rice')) return { ok: false, reason: 'ขาดไข่หรือข้าวสวย' };
+            if (!st.seasonings.includes('soy_sauce')) return { ok: false, reason: 'ต้องปรุงซีอิ๊วขาว' };
+            if (st.stirCount < 3) return { ok: false, reason: 'ต้องผัดอย่างน้อย 3 ครั้ง' };
+            if (!st.served) return { ok: false, reason: 'ยังไม่ได้ตักเสิร์ฟ' };
+            return { ok: true };
+          }
+        }
+      ],
+      boba: [
+        {
+          id: 'b1', reqPlayerLv: 1, title: 'ด่าน 1: ชานมไข่มุก',
+          desc: 'วางแก้ว ตักไข่มุกดำ ใส่น้ำแข็ง รินชานม เลือกความหวาน เขย่า และซีลฝา',
+          goals: ['แก้ว + ไข่มุกดำ', 'น้ำแข็ง + ชานม', 'ความหวาน', 'เขย่า + ซีลฝา'],
+          rewardCoins: 90, rewardXp: 65,
+          sample: [
+            { id: 'ev_start' }, { id: 'take_cup' }, { id: 'scoop_top', val: 'tapioca' },
+            { id: 'put_ice' }, { id: 'pour_tea', val: 'assam_milk' },
+            { id: 'set_sweet', val: '100' }, { id: 'shake_once' }, { id: 'seal_cup' }
+          ],
+          evaluate(st) {
+            if (!st.cupReady) return { ok: false, reason: 'ลืมวางแก้ว!' };
+            if (!st.toppings.includes('tapioca')) return { ok: false, reason: 'ขาดไข่มุกดำ' };
+            if (!st.hasIce || st.tea !== 'assam_milk') return { ok: false, reason: 'ขาดน้ำแข็งหรือชานม' };
+            if (!st.sweetness) return { ok: false, reason: 'ยังไม่ได้เลือกความหวาน' };
+            if (!st.shaken || !st.sealed) return { ok: false, reason: 'ต้องเขย่าและซีลฝา' };
+            return { ok: true };
+          }
+        },
+        {
+          id: 'b2', reqPlayerLv: 1, title: 'ด่าน 2: มัทฉะพุดดิ้งหวานน้อย',
+          desc: 'วางแก้ว ตักพุดดิ้ง ใส่น้ำแข็ง รินมัทฉะ เลือก 50% เขย่า และซีลฝา',
+          goals: ['แก้ว + พุดดิ้ง', 'น้ำแข็ง + มัทฉะ', 'หวาน 50%', 'เขย่า + ซีลฝา'],
+          rewardCoins: 120, rewardXp: 85,
+          sample: [
+            { id: 'ev_start' }, { id: 'take_cup' }, { id: 'scoop_top', val: 'pudding' },
+            { id: 'put_ice' }, { id: 'pour_tea', val: 'matcha_latte' },
+            { id: 'set_sweet', val: '50' }, { id: 'shake_once' }, { id: 'seal_cup' }
+          ],
+          evaluate(st) {
+            if (!st.cupReady) return { ok: false, reason: 'ลืมวางแก้ว!' };
+            if (!st.toppings.includes('pudding')) return { ok: false, reason: 'ขาดพุดดิ้ง' };
+            if (!st.hasIce || st.tea !== 'matcha_latte') return { ok: false, reason: 'ขาดน้ำแข็งหรือมัทฉะ' };
+            if (st.sweetness !== '50') return { ok: false, reason: 'ต้องเลือกหวาน 50%' };
+            if (!st.shaken || !st.sealed) return { ok: false, reason: 'ต้องเขย่าและซีลฝา' };
+            return { ok: true };
+          }
+        }
+      ],
+      repair: [
+        {
+          id: 'r1', reqPlayerLv: 1, title: 'ด่าน 1: เปลี่ยนจอ LCD',
+          desc: 'ปิดเครื่อง เปิดฝาหลัง ถอดขั้วแบต เปลี่ยนจอ LCD ปัดบอร์ด เสียบขั้วแบต แล้วเปิดทดสอบ',
+          goals: ['ปิดเครื่อง + เปิดฝา', 'ถอดขั้วแบต', 'เปลี่ยนจอ LCD', 'เสียบแบต + เปิดทดสอบ'],
+          rewardCoins: 100, rewardXp: 75,
+          sample: [
+            { id: 'ev_start' }, { id: 'power_off' }, { id: 'open_case' }, { id: 'unplug_batt' },
+            { id: 'swap_part', val: 'std_screen' }, { id: 'clean_pcb' },
+            { id: 'plug_batt' }, { id: 'boot_phone' }
+          ],
+          evaluate(st) {
+            if (st.shortCircuit) return { ok: false, reason: '⚡ ไฟช็อต! ต้องปิดเครื่องและถอดขั้วแบตก่อน' };
+            if (!st.caseOpened) return { ok: false, reason: 'ยังไม่ได้เปิดฝาหลัง' };
+            if (!st.partsReplaced.includes('std_screen')) return { ok: false, reason: 'ยังไม่ได้เปลี่ยนจอ LCD' };
+            if (!st.battConnected || !st.booted) return { ok: false, reason: 'ต้องเสียบแบตกลับและเปิดทดสอบ' };
+            return { ok: true };
+          }
+        },
+        {
+          id: 'r2', reqPlayerLv: 2, title: 'ด่าน 2: เปลี่ยนแบต 4500',
+          desc: 'ด่าน Lv.2: ปิดเครื่อง เปิดฝา ถอดขั้วแบต เปลี่ยนแบต 4500 ปัดบอร์ด เสียบแบต แล้วเปิดทดสอบ',
+          goals: ['ปิดเครื่อง + ถอดแบต', 'เปลี่ยนแบต 4500', 'ปัดบอร์ด', 'เสียบแบต + เปิดทดสอบ'],
+          rewardCoins: 135, rewardXp: 95,
+          sample: [
+            { id: 'ev_start' }, { id: 'power_off' }, { id: 'open_case' }, { id: 'unplug_batt' },
+            { id: 'swap_part', val: 'std_battery' }, { id: 'clean_pcb' },
+            { id: 'plug_batt' }, { id: 'boot_phone' }
+          ],
+          evaluate(st) {
+            if (st.shortCircuit) return { ok: false, reason: '⚡ ไฟช็อต!' };
+            if (!st.partsReplaced.includes('std_battery')) return { ok: false, reason: 'ยังไม่ได้เปลี่ยนแบต 4500' };
+            if (!st.boardCleaned) return { ok: false, reason: 'ยังไม่ได้ปัดบอร์ด' };
+            if (!st.battConnected || !st.booted) return { ok: false, reason: 'ต้องเสียบแบตกลับและเปิดทดสอบ' };
+            return { ok: true };
+          }
+        }
+      ]
+    };
+
+    const soundEngine = {
+      enabled: true,
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+      },
+      toggle() { this.enabled = !this.enabled; return this.enabled; },
+      playTone(freq, type = 'sine', duration = 0.12, gainVal = 0.08) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      },
+      playClick() { this.playTone(520, 'triangle', 0.07, 0.06); },
+      playStep() { this.playTone(390, 'sine', 0.09, 0.05); },
+      playSuccess() {
+        this.playTone(523.25, 'triangle', 0.14, 0.08);
+        setTimeout(() => this.playTone(659.25, 'triangle', 0.14, 0.08), 100);
+        setTimeout(() => this.playTone(783.99, 'triangle', 0.25, 0.09), 200);
+      },
+      playError() {
+        this.playTone(180, 'sawtooth', 0.22, 0.09);
+        setTimeout(() => this.playTone(135, 'sawtooth', 0.28, 0.09), 150);
+      }
+    };
+
+    class Renderer3D {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.rotY = 0.55;
+        this.rotX = 0.42;
+        this.zoom = 1.0;
+        this.dragging = false;
+        this.lastX = 0;
+        this.lastY = 0;
+        this.tick = 0;
+        this.sceneState = { shop: 'kitchen', active: false, burnt: false, success: false, items: [] };
+        this._bindEvents();
+        this._resize();
+        window.addEventListener('resize', () => this._resize());
+        this._loop();
+      }
+      _resize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = Math.max(260, Math.floor(rect.width));
+        this.canvas.height = Math.max(180, Math.floor(rect.height));
+      }
+      _bindEvents() {
+        const startDrag = (x, y) => { this.dragging = true; this.lastX = x; this.lastY = y; };
+        const moveDrag = (x, y) => {
+          if (!this.dragging) return;
+          this.rotY += (x - this.lastX) * 0.01;
+          this.rotX = Math.max(0.15, Math.min(1.15, this.rotX + (y - this.lastY) * 0.008));
+          this.lastX = x; this.lastY = y;
+        };
+        const endDrag = () => { this.dragging = false; };
+        this.canvas.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', endDrag);
+        this.canvas.addEventListener('touchstart', e => { if (e.touches[0]) startDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        this.canvas.addEventListener('touchmove', e => { if (e.touches[0]) moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        this.canvas.addEventListener('touchend', endDrag);
+      }
+      setZoom(d) { this.zoom = Math.max(0.65, Math.min(1.65, this.zoom + d)); }
+      resetCamera() { this.rotY = 0.55; this.rotX = 0.42; this.zoom = 1.0; }
+      updateScene(patch) { Object.assign(this.sceneState, patch); }
+      project(x, y, z) {
+        const cosY = Math.cos(this.rotY), sinY = Math.sin(this.rotY);
+        const x1 = x * cosY - z * sinY, z1 = x * sinY + z * cosY;
+        const cosX = Math.cos(this.rotX), sinX = Math.sin(this.rotX);
+        const y2 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
+        const fov = 420 * this.zoom;
+        const scale = fov / (fov + z2 + 260);
+        return { x: this.canvas.width / 2 + x1 * scale, y: this.canvas.height / 2 + 24 - y2 * scale, scale };
+      }
+      drawBox(cx, cy, cz, w, h, d, colorTop, colorLeft, colorRight) {
+        const hw = w / 2, hh = h / 2, hd = d / 2;
+        const pts = [
+          this.project(cx - hw, cy + hh, cz - hd), this.project(cx + hw, cy + hh, cz - hd),
+          this.project(cx + hw, cy + hh, cz + hd), this.project(cx - hw, cy + hh, cz + hd),
+          this.project(cx - hw, cy - hh, cz - hd), this.project(cx + hw, cy - hh, cz - hd),
+          this.project(cx + hw, cy - hh, cz + hd), this.project(cx - hw, cy - hh, cz + hd)
+        ];
+        const poly = (indices, fill) => {
+          this.ctx.beginPath();
+          indices.forEach((idx, i) => { if (i === 0) this.ctx.moveTo(pts[idx].x, pts[idx].y); else this.ctx.lineTo(pts[idx].x, pts[idx].y); });
+          this.ctx.closePath();
+          this.ctx.fillStyle = fill;
+          this.ctx.fill();
+          this.ctx.strokeStyle = 'rgba(15,23,42,0.35)';
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+        };
+        poly([0, 1, 2, 3], colorTop);
+        if (Math.cos(this.rotY) >= 0) poly([3, 2, 6, 7], colorLeft); else poly([0, 1, 5, 4], colorLeft);
+        if (Math.sin(this.rotY) >= 0) poly([0, 3, 7, 4], colorRight); else poly([1, 2, 6, 5], colorRight);
+      }
+      _loop() {
+        this.tick += 0.05;
+        const { ctx, canvas } = this;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.lineWidth = 1;
+        for (let i = -140; i <= 140; i += 35) {
+          const a = this.project(i, -60, -140), b = this.project(i, -60, 140);
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          const c = this.project(-140, -60, i), d = this.project(140, -60, i);
+          ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke();
+        }
+
+        const st = this.sceneState;
+        this.drawBox(0, -45, 0, 210, 26, 150, '#334155', '#1e293b', '#0f172a');
+
+        if (st.shop === 'kitchen') {
+          this.drawBox(-20, -24, 0, 80, 14, 80, '#475569', '#334155', '#1e293b');
+          if (st.active) {
+            const flicker = Math.sin(this.tick * 4) * 3;
+            this.drawBox(-20, -14, 0, 52 + flicker, 8, 52 + flicker, '#f97316', '#ef4444', '#dc2626');
+          }
+          const wobble = st.active ? Math.sin(this.tick * 3) * 6 : 0;
+          this.drawBox(-20 + wobble, -4, 0, 74, 16, 74, '#1e293b', '#0f172a', '#020617');
+          this.drawBox(38 + wobble, 2, 0, 48, 7, 10, '#78350f', '#451a03', '#451a03');
+          if (st.items.length > 0) {
+            const foodColor = st.burnt ? '#18181b' : (st.success ? '#fbbf24' : '#f59e0b');
+            this.drawBox(-20 + wobble, 7, 0, 46, 10, 46, foodColor, '#d97706', '#b45309');
+          }
+          this.drawBox(68, -28, 25, 54, 6, 54, '#f8fafc', '#cbd5e1', '#94a3b8');
+          if (st.success) this.drawBox(68, -21, 25, 36, 10, 36, '#f59e0b', '#d97706', '#b45309');
+        } else if (st.shop === 'boba') {
+          this.drawBox(-45, -18, 0, 55, 30, 55, '#0284c7', '#0369a1', '#075985');
+          const shake = st.active ? Math.sin(this.tick * 5) * 8 : 0;
+          this.drawBox(18, -8 + Math.abs(shake), 0, 38, 48, 38, 'rgba(248,250,252,0.85)', 'rgba(203,213,225,0.75)', 'rgba(148,163,184,0.75)');
+          if (st.items.length > 0) {
+            const teaColor = st.burnt ? '#ef4444' : '#d97706';
+            this.drawBox(18, -12 + Math.abs(shake), 0, 34, 34, 34, teaColor, '#b45309', '#92400e');
+          }
+          this.drawBox(18, 24 + Math.abs(shake), 0, 6, 26, 6, '#ec4899', '#db2777', '#be185d');
+        } else {
+          this.drawBox(0, -30, 0, 140, 4, 100, '#0d9488', '#0f766e', '#115e59');
+          const screenColor = st.burnt ? '#ef4444' : (st.success ? '#38bdf8' : '#1e293b');
+          this.drawBox(0, -23, 0, 52, 8, 92, screenColor, '#334155', '#0f172a');
+          this.drawBox(-65, -20, -20, 28, 18, 40, '#f59e0b', '#d97706', '#b45309');
+        }
+
+        if (st.burnt) {
+          for (let i = 0; i < 6; i++) {
+            const py = 20 + ((this.tick * 18 + i * 16) % 70);
+            const px = Math.sin(this.tick + i) * 18;
+            const p = this.project(px, py, 0);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 10 * p.scale, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+            ctx.fill();
+          }
+        }
+        requestAnimationFrame(() => this._loop());
+      }
+    }
+
+    const state = {
+      shop: 'kitchen', selectedCategory: 'all', difficulty: 'easy', levelIdx: 0,
+      playerLevel: 1, xp: 0, coins: 200, unlocked: new Set(), program: [],
+      running: false, stopRequested: false, marketTab: 'blocks', sandboxCustomTitle: ''
+    };
+    let renderer3d = null;
+
+    function getCurrentLevel() {
+      const list = SHOP_LEVELS[state.shop] || [];
+      return list[state.levelIdx] || list[0];
+    }
+
+    function refreshLevelSelect() {
+      const sel = document.getElementById('level-select');
+      const levels = SHOP_LEVELS[state.shop] || [];
+      sel.innerHTML = '';
+      levels.forEach((lv, idx) => {
+        const opt = document.createElement('option');
+        const locked = lv.reqPlayerLv > state.playerLevel;
+        opt.value = idx;
+        opt.disabled = locked;
+        opt.textContent = locked ? `🔒 ${lv.title} (Lv.${lv.reqPlayerLv})` : lv.title;
+        sel.appendChild(opt);
+      });
+      sel.value = state.levelIdx;
+    }
+
+    function renderGoalBanner() {
+      const banner = document.getElementById('goal-banner');
+      if (state.difficulty === 'sandbox') {
+        const title = state.sandboxCustomTitle || 'Sandbox อิสระ';
+        banner.innerHTML = `<strong>🛠️ ${title}</strong> — ลากบล็อคมาต่อและทดสอบ 3D ได้อิสระ`;
+        return;
+      }
+      const lv = getCurrentLevel();
+      const tags = lv.goals.map(g => `<span class="goal-tag">✓ ${g}</span>`).join('');
+      banner.innerHTML = `
+        <div><strong>🎯 ${lv.title}</strong> <span style="color:#fbbf24;">(+${lv.rewardCoins} 🪙 | +${lv.rewardXp} XP)</span></div>
+        <div style="color:#cbd5e1; margin-top:2px;">${lv.desc}</div>
+        <div class="goal-tags">${tags}</div>
+      `;
+    }
+
+    function renderPalette() {
+      const container = document.getElementById('palette-container');
+      const shopNames = { kitchen: 'ตามสั่ง', boba: 'ชานม', repair: 'ซ่อมมือถือ' };
+      document.getElementById('palette-shop-label').textContent = shopNames[state.shop];
+      const blocks = SHOP_BLOCKS[state.shop] || [];
+      container.innerHTML = '';
+
+      const cats = state.selectedCategory === 'all'
+        ? BLOCK_CATEGORIES
+        : BLOCK_CATEGORIES.filter(c => c.key === state.selectedCategory);
+
+      cats.forEach(cat => {
+        const items = blocks.filter(b => b.cat === cat.key);
+        if (!items.length) return;
+        const header = document.createElement('div');
+        header.className = 'cat-header';
+        header.textContent = cat.label;
+        container.appendChild(header);
+
+        items.forEach(blk => {
+          const isLocked = (blk.unlockKey && !state.unlocked.has(blk.unlockKey)) ||
+                           (blk.reqItem && !state.unlocked.has(blk.reqItem));
+          const el = document.createElement('div');
+          el.className = `palette-block cat-${blk.cat} ${isLocked ? 'locked' : ''}`;
+          el.draggable = !isLocked;
+          el.innerHTML = `<span>${blk.label}</span><span>${isLocked ? '🔒' : '⠿'}</span>`;
+          if (!isLocked) {
+            el.addEventListener('dragstart', e => {
+              e.dataTransfer.setData('text/plain', blk.id);
+              soundEngine.playClick();
+            });
+          } else {
+            el.addEventListener('click', () => setToast('ปลดล็อคได้ที่ 🛒 ร้านค้า'));
+          }
+          container.appendChild(el);
+        });
+      });
+    }
+
+    function addBlockToProgram(blockId, presetVal = null) {
+      const def = (SHOP_BLOCKS[state.shop] || []).find(b => b.id === blockId);
+      if (!def) return;
+      let defaultVal = presetVal;
+      if (!defaultVal && def.options && def.options.length > 0) {
+        const avail = def.options.find(o => !o.reqItem || state.unlocked.has(o.reqItem)) || def.options[0];
+        defaultVal = avail.val;
+      }
+      state.program.push({ uid: Date.now() + Math.random(), id: blockId, val: defaultVal });
+      soundEngine.playClick();
+      renderProgram();
+    }
+
+    function loadSampleProgram() {
+      const lv = getCurrentLevel();
+      state.program = (lv.sample || []).map((item, idx) => ({
+        uid: Date.now() + idx, id: item.id, val: item.val || null
+      }));
+      document.getElementById('result-modal').classList.add('hidden');
+      renderer3d.updateScene({ active: false, burnt: false, success: false, items: [] });
+      renderGoalBanner();
+      renderProgram();
+    }
+
+    function renderProgram() {
+      const dropzone = document.getElementById('code-dropzone');
+      document.getElementById('block-count').textContent = state.program.length;
+      dropzone.innerHTML = '';
+
+      if (state.program.length === 0) {
+        dropzone.innerHTML = `<div class="empty-hint">ลากบล็อคจากด้านซ้ายมาวางที่นี่เท่านั้น (ไม่รองรับการคลิกเพิ่ม)</div>`;
+        return;
+      }
+
+      const defs = SHOP_BLOCKS[state.shop] || [];
+      state.program.forEach((node, index) => {
+        const def = defs.find(d => d.id === node.id);
+        if (!def) return;
+        const row = document.createElement('div');
+        row.className = `code-block cat-${def.cat}`;
+        row.dataset.index = index;
+
+        let selectHtml = '';
+        if (def.options) {
+          const opts = def.options.map(o => {
+            const locked = o.reqItem && !state.unlocked.has(o.reqItem);
+            return `<option value="${o.val}" ${o.val === node.val ? 'selected' : ''} ${locked ? 'disabled' : ''}>${locked ? '🔒 ' : ''}${o.text}</option>`;
+          }).join('');
+          selectHtml = `<select data-uid="${node.uid}">${opts}</select>`;
+        }
+
+        row.innerHTML = `
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="opacity:0.75;">${index + 1}.</span>
+            <span>${def.label}</span>
+            ${selectHtml}
+          </div>
+          <div class="block-controls">
+            <button data-act="up" title="ขึ้น">▲</button>
+            <button data-act="down" title="ลง">▼</button>
+            <button data-act="del" title="ลบ">✕</button>
+          </div>
+        `;
+
+        const sel = row.querySelector('select');
+        if (sel) sel.addEventListener('change', e => { node.val = e.target.value; });
+
+        row.querySelector('[data-act="up"]').addEventListener('click', () => {
+          if (state.running || index === 0) return;
+          [state.program[index - 1], state.program[index]] = [state.program[index], state.program[index - 1]];
+          renderProgram();
+        });
+        row.querySelector('[data-act="down"]').addEventListener('click', () => {
+          if (state.running || index === state.program.length - 1) return;
+          [state.program[index + 1], state.program[index]] = [state.program[index], state.program[index + 1]];
+          renderProgram();
+        });
+        row.querySelector('[data-act="del"]').addEventListener('click', () => {
+          if (state.running) return;
+          state.program.splice(index, 1);
+          renderProgram();
+        });
+
+        dropzone.appendChild(row);
+      });
+    }
+
+    function expandProgramWithLoops(program) {
+      const expanded = [];
+      for (let i = 0; i < program.length; i++) {
+        const curr = program[i];
+        if (curr.id === 'loop_next' && i + 1 < program.length) {
+          const times = Number(curr.val) || 2;
+          const nextCmd = program[i + 1];
+          for (let t = 0; t < times; t++) expanded.push({ ...nextCmd, sourceIdx: i + 1 });
+          i++;
+        } else {
+          expanded.push({ ...curr, sourceIdx: i });
+        }
+      }
+      return expanded;
+    }
+
+    async function runAlgorithm() {
+      if (state.running || state.program.length === 0) return;
+      state.running = true;
+      state.stopRequested = false;
+      document.getElementById('btn-run').disabled = true;
+      document.getElementById('btn-stop').disabled = false;
+      document.getElementById('result-modal').classList.add('hidden');
+
+      const sim = {
+        panOn: false, hasOil: false, hasGarlic: false,
+        proteins: [], vegs: [], seasonings: [],
+        stirCount: 0, heat: 'medium', burntGuard: false, burnt: false, served: false,
+        cupReady: false, toppings: [], hasIce: false, tea: null, sweetness: null, shaken: false, sealed: false,
+        poweredOff: false, caseOpened: false, battDisconnected: false, battConnected: true,
+        partsReplaced: [], boardCleaned: false, booted: false, shortCircuit: false
+      };
+
+      renderer3d.updateScene({ active: true, burnt: false, success: false, items: [] });
+
+      const steps = expandProgramWithLoops(state.program);
+      const blockRows = document.querySelectorAll('.code-block');
+
+      for (let i = 0; i < steps.length; i++) {
+        if (state.stopRequested) break;
+        const step = steps[i];
+        blockRows.forEach(r => r.classList.remove('active-step'));
+        if (blockRows[step.sourceIdx]) blockRows[step.sourceIdx].classList.add('active-step');
+
+        soundEngine.playStep();
+        applyStepToSimulation(sim, step);
+        renderer3d.updateScene({
+          active: true,
+          burnt: sim.burnt || sim.shortCircuit,
+          items: [...sim.proteins, ...sim.vegs, ...sim.toppings, ...sim.partsReplaced, 'item']
+        });
+        setToast(`รันขั้นที่ ${i + 1}/${steps.length}`);
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      blockRows.forEach(r => r.classList.remove('active-step'));
+      state.running = false;
+      document.getElementById('btn-run').disabled = false;
+      document.getElementById('btn-stop').disabled = true;
+
+      if (state.stopRequested) {
+        renderer3d.updateScene({ active: false });
+        setToast('⏹ หยุดแล้ว');
+        return;
+      }
+      finalizeRun(sim);
+    }
+
+    function applyStepToSimulation(sim, step) {
+      switch (step.id) {
+        case 'ev_stove_on':
+        case 'set_pan': sim.panOn = true; break;
+        case 'pour_oil': sim.hasOil = true; break;
+        case 'toss_garlic': sim.hasGarlic = true; break;
+        case 'put_meat': sim.proteins.push(step.val); break;
+        case 'put_veg': sim.vegs.push(step.val); break;
+        case 'add_sauce': sim.seasonings.push(step.val); break;
+        case 'set_heat': sim.heat = step.val; break;
+        case 'if_guard': sim.burntGuard = true; if (sim.heat === 'high') sim.heat = 'medium'; break;
+        case 'stir_once':
+        case 'var_stir_plus':
+          sim.stirCount++;
+          if (!sim.hasOil && sim.stirCount >= 2) sim.burnt = true;
+          if (sim.heat === 'high' && !sim.burntGuard && sim.stirCount >= 3) sim.burnt = true;
+          if (sim.stirCount >= 6 && !sim.burntGuard) sim.burnt = true;
+          break;
+        case 'plate_up': sim.served = true; break;
+
+        case 'take_cup': sim.cupReady = true; break;
+        case 'scoop_top': sim.toppings.push(step.val); break;
+        case 'put_ice': sim.hasIce = true; break;
+        case 'pour_tea': sim.tea = step.val; break;
+        case 'set_sweet': sim.sweetness = step.val; break;
+        case 'add_cheese': sim.toppings.push('cheese'); break;
+        case 'shake_once':
+        case 'var_shake_plus': sim.shaken = true; break;
+        case 'seal_cup': sim.sealed = true; break;
+
+        case 'power_off': sim.poweredOff = true; break;
+        case 'open_case': sim.caseOpened = true; break;
+        case 'unplug_batt': sim.battDisconnected = true; sim.battConnected = false; break;
+        case 'swap_part':
+          if (!sim.poweredOff || !sim.battDisconnected) sim.shortCircuit = true;
+          sim.partsReplaced.push(step.val);
+          break;
+        case 'clean_pcb': sim.boardCleaned = true; break;
+        case 'plug_batt': sim.battConnected = true; break;
+        case 'boot_phone': sim.booted = true; break;
+      }
+    }
+
+    function finalizeRun(sim) {
+      const modal = document.getElementById('result-modal');
+      if (state.difficulty === 'sandbox') {
+        soundEngine.playSuccess();
+        renderer3d.updateScene({ active: false, success: true });
+        modal.innerHTML = `
+          <div style="font-size:34px;">✨</div>
+          <h3>Sandbox สำเร็จ</h3>
+          <p style="font-size:12px;color:#cbd5e1;">${state.sandboxCustomTitle || 'โปรเจกต์อิสระ'}</p>
+          <button class="action-btn sample-btn" id="btn-sb-ok">ตกลง</button>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('btn-sb-ok').onclick = () => modal.classList.add('hidden');
+        return;
+      }
+
+      const lv = getCurrentLevel();
+      const res = lv.evaluate(sim);
+      const mult = state.difficulty === 'hard' ? 1.5 : (state.difficulty === 'normal' ? 1.2 : 1.0);
+
+      if (res.ok) {
+        const coinsEarned = Math.round(lv.rewardCoins * mult);
+        const xpEarned = Math.round(lv.rewardXp * mult);
+        state.coins += coinsEarned;
+        addXp(xpEarned);
+        updateStatsUI();
+        soundEngine.playSuccess();
+        renderer3d.updateScene({ active: false, burnt: false, success: true });
+
+        modal.innerHTML = `
+          <div style="font-size:36px;">🏆</div>
+          <h3 style="color:#4ade80;">ผ่านด่าน!</h3>
+          <p style="font-size:12px;">+${coinsEarned} 🪙 | +${xpEarned} XP</p>
+          <div style="display:flex;gap:8px;">
+            <button class="action-btn clear-btn" id="btn-modal-close">ปิด</button>
+            <button class="action-btn run-btn" id="btn-next-level">ด่านถัดไป ➔</button>
+          </div>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('btn-modal-close').onclick = () => modal.classList.add('hidden');
+        document.getElementById('btn-next-level').onclick = () => {
+          modal.classList.add('hidden');
+          const levels = SHOP_LEVELS[state.shop];
+          if (state.levelIdx + 1 < levels.length && levels[state.levelIdx + 1].reqPlayerLv <= state.playerLevel) {
+            state.levelIdx++;
+            refreshLevelSelect();
+            loadSampleProgram();
+          } else {
+            setToast('ผ่านด่านที่ปลดล็อคในร้านนี้ครบแล้ว');
+          }
+        };
+      } else {
+        soundEngine.playError();
+        renderer3d.updateScene({ active: false, burnt: true, success: false });
+        modal.innerHTML = `
+          <div style="font-size:36px;">💥</div>
+          <h3 style="color:#f87171;">ไม่สำเร็จ</h3>
+          <p style="font-size:12px;color:#fecaca;">${res.reason}</p>
+          <button class="action-btn sample-btn" id="btn-retry">แก้ไข</button>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('btn-retry').onclick = () => modal.classList.add('hidden');
+      }
+    }
+
+    function addXp(amount) {
+      state.xp += amount;
+      while (state.xp >= state.playerLevel * 100) {
+        state.xp -= state.playerLevel * 100;
+        state.playerLevel++;
+        setToast(`🎉 เลเวลอัป Lv.${state.playerLevel}!`);
+        refreshLevelSelect();
+      }
+    }
+
+    function updateStatsUI() {
+      document.getElementById('stat-level').textContent = `Lv.${state.playerLevel}`;
+      document.getElementById('stat-xp').textContent = `XP ${state.xp}/${state.playerLevel * 100}`;
+      document.getElementById('stat-coins').textContent = `🪙 ${state.coins}`;
+    }
+
+    function renderMarket() {
+      const grid = document.getElementById('market-items-grid');
+      const items = MARKET_CATALOG[state.marketTab] || [];
+      grid.innerHTML = '';
+      items.forEach(item => {
+        const owned = state.unlocked.has(item.id);
+        const card = document.createElement('div');
+        card.className = 'market-item';
+        card.innerHTML = `
+          <div><h4>${item.name}</h4><p>${item.desc}</p></div>
+          <button class="action-btn ${owned ? 'clear-btn' : 'run-btn'}" ${owned ? 'disabled' : ''}>
+            ${owned ? '✓ มีแล้ว' : `ซื้อ ${item.price} 🪙`}
+          </button>
+        `;
+        if (!owned) {
+          card.querySelector('button').addEventListener('click', () => {
+            if (state.coins < item.price) {
+              soundEngine.playError();
+              setToast('เหรียญไม่พอ');
+              return;
+            }
+            state.coins -= item.price;
+            state.unlocked.add(item.id);
+            soundEngine.playSuccess();
+            updateStatsUI();
+            renderMarket();
+            renderPalette();
+            renderProgram();
+            setToast(`ซื้อ ${item.name} แล้ว`);
+          });
+        }
+        grid.appendChild(card);
+      });
+    }
+
+    function setToast(msg) {
+      document.getElementById('sim-status-toast').textContent = msg;
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (state.running) return;
+          soundEngine.playClick();
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.shop = btn.dataset.shop;
+          state.levelIdx = 0;
+          renderer3d.updateScene({ shop: state.shop, active: false, burnt: false, success: false, items: [] });
+          refreshLevelSelect();
+          renderPalette();
+          loadSampleProgram();
+        });
+      });
+
+      document.querySelectorAll('.cat-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          soundEngine.playClick();
+          document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          state.selectedCategory = chip.dataset.cat;
+          renderPalette();
+        });
+      });
+
+      document.getElementById('difficulty-select').addEventListener('change', e => {
+        state.difficulty = e.target.value;
+        document.getElementById('sandbox-bar').classList.toggle('hidden', state.difficulty !== 'sandbox');
+        renderGoalBanner();
+      });
+
+      document.getElementById('level-select').addEventListener('change', e => {
+        if (state.running) return;
+        state.levelIdx = Number(e.target.value);
+        loadSampleProgram();
+      });
+
+      document.getElementById('btn-sample').addEventListener('click', () => {
+        if (state.running) return;
+        soundEngine.playClick();
+        loadSampleProgram();
+      });
+
+      document.getElementById('btn-clear').addEventListener('click', () => {
+        if (state.running) return;
+        soundEngine.playClick();
+        state.program = [];
+        renderProgram();
+        renderer3d.updateScene({ active: false, burnt: false, success: false, items: [] });
+        setToast('ล้างบล็อคแล้ว');
+      });
+
+      document.getElementById('btn-run').addEventListener('click', () => runAlgorithm());
+      document.getElementById('btn-stop').addEventListener('click', () => {
+        state.stopRequested = true;
+        setToast('กำลังหยุด...');
+      });
+
+      document.getElementById('btn-save-sandbox').addEventListener('click', () => {
+        const val = document.getElementById('sandbox-title-input').value.trim();
+        state.sandboxCustomTitle = val || 'โปรเจกต์อิสระ';
+        soundEngine.playSuccess();
+        renderGoalBanner();
+        setToast(`บันทึก "${state.sandboxCustomTitle}" แล้ว`);
+      });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => renderer3d.setZoom(0.15));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => renderer3d.setZoom(-0.15));
+      document.getElementById('btn-cam-reset').addEventListener('click', () => renderer3d.resetCamera());
+
+      document.getElementById('btn-audio').addEventListener('click', e => {
+        e.target.textContent = soundEngine.toggle() ? '🔊' : '🔇';
+      });
+
+      document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else document.exitFullscreen().catch(() => {});
+      });
+
+      document.getElementById('btn-market').addEventListener('click', () => {
+        soundEngine.playClick();
+        document.getElementById('market-modal').classList.remove('hidden');
+        renderMarket();
+      });
+      document.getElementById('btn-close-market').addEventListener('click', () => {
+        document.getElementById('market-modal').classList.add('hidden');
+      });
+      document.querySelectorAll('.m-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.m-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.marketTab = btn.dataset.mtab;
+          renderMarket();
+        });
+      });
+
+      const dropzone = document.getElementById('code-dropzone');
+      dropzone.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!state.running) dropzone.classList.add('drag-over');
+      });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+      dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        if (state.running) return;
+        const blockId = e.dataTransfer.getData('text/plain');
+        if (blockId) addBlockToProgram(blockId);
+      });
+    }
+
+    function init() {
+      renderer3d = new Renderer3D(document.getElementById('sim-canvas'));
+      bindEvents();
+      refreshLevelSelect();
+      renderPalette();
+      loadSampleProgram();
+      updateStatsUI();
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
 </body>
 </html>
