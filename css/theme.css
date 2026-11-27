@@ -1,0 +1,36 @@
+:root {
+  --bg-dark: #0f172a;
+  --bg-panel: #1e293b;
+  --bg-card: #334155;
+  --border-subtle: rgba(148, 163, 184, 0.2);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+
+  /* 6 Scratch-inspired Category Colors */
+  --cat-motion: #2563eb;
+  --cat-events: #eab308;
+  --cat-control: #f97316;
+  --cat-operation: #16a34a;
+  --cat-sensing: #06b6d4;
+  --cat-variable: #ea580c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.4); }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
